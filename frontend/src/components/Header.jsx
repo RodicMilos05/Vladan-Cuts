@@ -1,6 +1,6 @@
 import { Container, Nav, Navbar, Button } from 'react-bootstrap';
 import { LinkContainer } from 'react-router-bootstrap';
-import { FaCalendarAlt, FaCut, FaUser, FaUserPlus } from 'react-icons/fa';
+import { FaCalendarAlt, FaCut, FaUser, FaUserPlus, FaTools } from 'react-icons/fa';
 
 const Header = () => {
   return (
@@ -46,6 +46,13 @@ const Header = () => {
 
             <LinkContainer to="/profil">
               <Nav.Link>Profil</Nav.Link>
+            </LinkContainer>
+
+            <LinkContainer to="/admin">
+              <Nav.Link>
+                <FaTools className="me-1" />
+                Admin
+              </Nav.Link>
             </LinkContainer>
 
             <LinkContainer to="/login">

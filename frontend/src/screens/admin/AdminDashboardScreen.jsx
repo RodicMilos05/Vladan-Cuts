@@ -1,46 +1,73 @@
 import { Card, Col, Container, Row } from 'react-bootstrap';
+import { Link } from 'react-router-dom';
+import { FaCalendarAlt, FaCut, FaImages, FaStar, FaUsers } from 'react-icons/fa';
+
+const adminCards = [
+  {
+    title: 'Korisnici',
+    description: 'Pregled registrovanih korisnika',
+    icon: <FaUsers />,
+    path: '/admin/korisnici',
+  },
+  {
+    title: 'Usluge',
+    description: 'Dodavanje, izmena i brisanje usluga',
+    icon: <FaCut />,
+    path: '/admin/usluge',
+  },
+  {
+    title: 'Termini',
+    description: 'Pregled i upravljanje zakazanim terminima',
+    icon: <FaCalendarAlt />,
+    path: '/admin/termini',
+  },
+  {
+    title: 'Galerija',
+    description: 'Upravljanje radovima u galeriji',
+    icon: <FaImages />,
+    path: '/admin/galerija',
+  },
+  {
+    title: 'Komentari',
+    description: 'Pregled i brisanje komentara korisnika',
+    icon: <FaStar />,
+    path: '/admin/komentari',
+  },
+];
 
 const AdminDashboardScreen = () => {
   return (
     <Container className="py-5">
-      <h1 className="fw-bold mb-4">Admin panel</h1>
+      <p className="text-uppercase text-muted fw-semibold mb-2">
+        Administracija
+      </p>
+
+      <h1 className="fw-bold mb-2">Admin panel</h1>
+
+      <p className="text-muted mb-4">
+        Centralno mesto za upravljanje korisnicima, uslugama, terminima, galerijom i komentarima.
+      </p>
 
       <Row className="g-4">
-        <Col md={6} lg={3}>
-          <Card className="shadow-sm border-0">
-            <Card.Body>
-              <h5>Korisnici</h5>
-              <p className="text-muted mb-0">Upravljanje korisnicima</p>
-            </Card.Body>
-          </Card>
-        </Col>
+        {adminCards.map((card) => (
+          <Col md={6} lg={4} key={card.title}>
+            <Link to={card.path} className="text-decoration-none text-dark">
+              <Card className="h-100 border-0 shadow-sm admin-card">
+                <Card.Body>
+                  <div className="admin-card-icon mb-3">
+                    {card.icon}
+                  </div>
 
-        <Col md={6} lg={3}>
-          <Card className="shadow-sm border-0">
-            <Card.Body>
-              <h5>Usluge</h5>
-              <p className="text-muted mb-0">Upravljanje uslugama</p>
-            </Card.Body>
-          </Card>
-        </Col>
+                  <h5 className="fw-bold">{card.title}</h5>
 
-        <Col md={6} lg={3}>
-          <Card className="shadow-sm border-0">
-            <Card.Body>
-              <h5>Termini</h5>
-              <p className="text-muted mb-0">Pregled zakazanih termina</p>
-            </Card.Body>
-          </Card>
-        </Col>
-
-        <Col md={6} lg={3}>
-          <Card className="shadow-sm border-0">
-            <Card.Body>
-              <h5>Galerija</h5>
-              <p className="text-muted mb-0">Upravljanje galerijom</p>
-            </Card.Body>
-          </Card>
-        </Col>
+                  <p className="text-muted mb-0">
+                    {card.description}
+                  </p>
+                </Card.Body>
+              </Card>
+            </Link>
+          </Col>
+        ))}
       </Row>
     </Container>
   );

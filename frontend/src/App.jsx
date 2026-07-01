@@ -12,7 +12,13 @@ import BookingScreen from './screens/BookingScreen';
 import MyAppointmentsScreen from './screens/MyAppointmentsScreen';
 import ProfileScreen from './screens/ProfileScreen';
 import NotFoundScreen from './screens/NotFoundScreen';
+
 import AdminDashboardScreen from './screens/admin/AdminDashboardScreen';
+import AdminUsersScreen from './screens/admin/AdminUsersScreen';
+import AdminServicesScreen from './screens/admin/AdminServicesScreen';
+import AdminAppointmentsScreen from './screens/admin/AdminAppointmentsScreen';
+import AdminGalleryScreen from './screens/admin/AdminGalleryScreen';
+import AdminReviewsScreen from './screens/admin/AdminReviewsScreen';
 
 const App = () => {
   return (
@@ -31,7 +37,14 @@ const App = () => {
             <Route path="/zakazivanje" element={<BookingScreen />} />
             <Route path="/moji-termini" element={<MyAppointmentsScreen />} />
             <Route path="/profil" element={<ProfileScreen />} />
+
             <Route path="/admin" element={<AdminDashboardScreen />} />
+            <Route path="/admin/korisnici" element={<AdminUsersScreen />} />
+            <Route path="/admin/usluge" element={<AdminServicesScreen />} />
+            <Route path="/admin/termini" element={<AdminAppointmentsScreen />} />
+            <Route path="/admin/galerija" element={<AdminGalleryScreen />} />
+            <Route path="/admin/komentari" element={<AdminReviewsScreen />} />
+
             <Route path="*" element={<NotFoundScreen />} />
           </Routes>
         </main>
