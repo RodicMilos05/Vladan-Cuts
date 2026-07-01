@@ -1,6 +1,6 @@
 import { Container, Nav, Navbar, Button } from 'react-bootstrap';
 import { LinkContainer } from 'react-router-bootstrap';
-import { FaCut, FaUser } from 'react-icons/fa';
+import { FaCut, FaUser, FaUserPlus } from 'react-icons/fa';
 
 const Header = () => {
   return (
@@ -41,6 +41,13 @@ const Header = () => {
               <Button variant="outline-light" size="sm" className="ms-lg-3 mt-2 mt-lg-0">
                 <FaUser className="me-1" />
                 Login
+              </Button>
+            </LinkContainer>
+
+            <LinkContainer to="/registracija">
+              <Button variant="light" size="sm" className="ms-lg-2 mt-2 mt-lg-0">
+                <FaUserPlus className="me-1" />
+                Registracija
               </Button>
             </LinkContainer>
           </Nav>
