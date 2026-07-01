@@ -1,29 +1,60 @@
 # Vladan Cuts
 
-Vladan Cuts je veb aplikacija za zakazivanje frizerskih termina.
+Vladan Cuts je full-stack veb aplikacija za zakazivanje frizerskih termina.
+
+Aplikacija omogućava gostima da pregledaju usluge, galeriju i komentare, registrovanim korisnicima da zakažu i prate svoje termine, a administratoru da upravlja korisnicima, uslugama, terminima, galerijom i komentarima.
 
 ## Tehnologije
 
+### Frontend
+
 - React
 - Bootstrap
+- React Bootstrap
+- React Router DOM
+- Axios
+
+### Backend
+
 - Node.js
-- Express
+- Express.js
 - MongoDB
 - Mongoose
 - JWT
-- bcrypt
+- bcryptjs
 
 ## Uloge korisnika
 
-- Gost
-- Registrovani korisnik
-- Administrator
+### Gost
 
-## Osnovne funkcionalnosti
-
+- Pregled početne stranice
 - Pregled usluga
-- Pregled galerije radova
-- Registracija i prijava korisnika
+- Pregled galerije
+- Pregled komentara
+- Registracija i prijava
+
+### Registrovani korisnik
+
 - Zakazivanje termina
-- Pregled korisničkih termina
-- Admin panel za upravljanje sadržajem
+- Pregled svojih termina
+- Otkazivanje termina
+- Izmena profila
+- Ostavljanje komentara
+
+### Administrator
+
+- Upravljanje korisnicima
+- Upravljanje uslugama
+- Upravljanje terminima
+- Upravljanje galerijom
+- Upravljanje komentarima
+
+## Struktura projekta
+
+```txt
+vladan-cuts/
+├── backend/
+├── frontend/
+├── documentation/
+├── README.md
+└── .gitignore
