@@ -83,3 +83,15 @@ body {
 .auth-container .alert {
   border-radius: 12px;
 }
+
+.booking-summary {
+  border-radius: 14px;
+}
+
+.appointment-card {
+  border-radius: 18px;
+}
+
+.appointment-card .badge {
+  font-size: 0.75rem;
+}
