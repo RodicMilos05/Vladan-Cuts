@@ -1,22 +1,28 @@
-import { Container, Nav, Navbar, Button } from 'react-bootstrap';
+import { Container, Nav, Navbar, NavDropdown } from 'react-bootstrap';
 import { LinkContainer } from 'react-router-bootstrap';
-import { FaCalendarAlt, FaCut, FaUser, FaUserPlus, FaTools } from 'react-icons/fa';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
-const Header = () => {
+function Header() {
+  const navigate = useNavigate();
+  const { userInfo, logout } = useAuth();
+
+  const logoutHandler = () => {
+    logout();
+    navigate('/');
+  };
+
   return (
-    <Navbar bg="dark" variant="dark" expand="lg" sticky="top" className="shadow-sm">
+    <Navbar bg="dark" data-bs-theme="dark" expand="lg" sticky="top">
       <Container>
         <LinkContainer to="/">
-          <Navbar.Brand className="fw-bold d-flex align-items-center gap-2">
-            <FaCut />
-            Vladan Cuts
-          </Navbar.Brand>
+          <Navbar.Brand>Vladan Cuts</Navbar.Brand>
         </LinkContainer>
 
         <Navbar.Toggle aria-controls="main-navbar" />
 
         <Navbar.Collapse id="main-navbar">
-          <Nav className="ms-auto align-items-lg-center">
+          <Nav className="me-auto">
             <LinkContainer to="/">
               <Nav.Link>Početna</Nav.Link>
             </LinkContainer>
@@ -32,47 +38,53 @@ const Header = () => {
             <LinkContainer to="/komentari">
               <Nav.Link>Komentari</Nav.Link>
             </LinkContainer>
+          </Nav>
 
-            <LinkContainer to="/zakazivanje">
-              <Nav.Link>
-                <FaCalendarAlt className="me-1" />
-                Zakazivanje
-              </Nav.Link>
-            </LinkContainer>
+          <Nav className="ms-auto">
+            {userInfo ? (
+              <>
+                <LinkContainer to="/zakazivanje">
+                  <Nav.Link>Zakazivanje</Nav.Link>
+                </LinkContainer>
 
-            <LinkContainer to="/moji-termini">
-              <Nav.Link>Moji termini</Nav.Link>
-            </LinkContainer>
+                <LinkContainer to="/moji-termini">
+                  <Nav.Link>Moji termini</Nav.Link>
+                </LinkContainer>
 
-            <LinkContainer to="/profil">
-              <Nav.Link>Profil</Nav.Link>
-            </LinkContainer>
+                {userInfo.isAdmin && (
+                  <LinkContainer to="/admin">
+                    <Nav.Link>Admin</Nav.Link>
+                  </LinkContainer>
+                )}
 
-            <LinkContainer to="/admin">
-              <Nav.Link>
-                <FaTools className="me-1" />
-                Admin
-              </Nav.Link>
-            </LinkContainer>
+                <NavDropdown title={userInfo.name} id="user-menu">
+                  <LinkContainer to="/profil">
+                    <NavDropdown.Item>Profil</NavDropdown.Item>
+                  </LinkContainer>
 
-            <LinkContainer to="/login">
-              <Button variant="outline-light" size="sm" className="ms-lg-3 mt-2 mt-lg-0">
-                <FaUser className="me-1" />
-                Login
-              </Button>
-            </LinkContainer>
+                  <NavDropdown.Divider />
 
-            <LinkContainer to="/registracija">
-              <Button variant="light" size="sm" className="ms-lg-2 mt-2 mt-lg-0">
-                <FaUserPlus className="me-1" />
-                Registracija
-              </Button>
-            </LinkContainer>
+                  <NavDropdown.Item onClick={logoutHandler}>
+                    Odjavi se
+                  </NavDropdown.Item>
+                </NavDropdown>
+              </>
+            ) : (
+              <>
+                <LinkContainer to="/prijava">
+                  <Nav.Link>Prijava</Nav.Link>
+                </LinkContainer>
+
+                <LinkContainer to="/registracija">
+                  <Nav.Link>Registracija</Nav.Link>
+                </LinkContainer>
+              </>
+            )}
           </Nav>
         </Navbar.Collapse>
       </Container>
     </Navbar>
   );
-};
+}
 
 export default Header;

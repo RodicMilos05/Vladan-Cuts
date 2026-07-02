@@ -1,83 +1,68 @@
 import { useState } from 'react';
-import { Alert, Button, Card, Container, Form } from 'react-bootstrap';
-import { Link } from 'react-router-dom';
+import { Alert, Button, Card, Container, Form, Spinner } from 'react-bootstrap';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
-const RegisterScreen = () => {
+function RegisterScreen() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const { register } = useAuth();
+
+  const redirect = new URLSearchParams(location.search).get('redirect') || '/';
+
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
-  const [errorMessage, setErrorMessage] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const submitHandler = (e) => {
+  const submitHandler = async (e) => {
     e.preventDefault();
 
-    setErrorMessage('');
-    setSuccessMessage('');
+    setError('');
 
-    if (!name.trim()) {
-      setErrorMessage('Ime i prezime su obavezni.');
-      return;
-    }
-
-    if (!email.trim()) {
-      setErrorMessage('Email adresa je obavezna.');
-      return;
-    }
-
-    if (!phone.trim()) {
-      setErrorMessage('Broj telefona je obavezan.');
-      return;
-    }
-
-    if (!password.trim()) {
-      setErrorMessage('Lozinka je obavezna.');
+    if (!name || !email || !phone || !password || !confirmPassword) {
+      setError('Sva polja su obavezna.');
       return;
     }
 
     if (password.length < 6) {
-      setErrorMessage('Lozinka mora imati najmanje 6 karaktera.');
+      setError('Lozinka mora imati najmanje 6 karaktera.');
       return;
     }
 
     if (password !== confirmPassword) {
-      setErrorMessage('Lozinke se ne poklapaju.');
+      setError('Lozinke se ne poklapaju.');
       return;
     }
 
-    setSuccessMessage('Forma je ispravno popunjena. Registracija će biti povezana sa backendom kasnije.');
+    try {
+      setLoading(true);
 
-    console.log('Registracioni podaci:', {
-      name,
-      email,
-      phone,
-      password,
-    });
+      await register(name, email, password, phone);
+
+      navigate(redirect);
+    } catch (err) {
+      setError(
+        err.response?.data?.message ||
+          'Došlo je do greške prilikom registracije.'
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <Container className="py-5 auth-container">
-      <Card className="shadow-sm border-0">
-        <Card.Body className="p-4">
-          <h1 className="h3 fw-bold mb-2">Registracija</h1>
-          <p className="text-muted mb-4">
-            Napravite nalog kako biste mogli da zakažete termin.
-          </p>
+    <Container className="py-5">
+      <Card className="mx-auto shadow-sm" style={{ maxWidth: '550px' }}>
+        <Card.Body>
+          <h1 className="mb-4">Registracija</h1>
 
-          {errorMessage && (
-            <Alert variant="danger">
-              {errorMessage}
-            </Alert>
-          )}
-
-          {successMessage && (
-            <Alert variant="success">
-              {successMessage}
-            </Alert>
-          )}
+          {error && <Alert variant="danger">{error}</Alert>}
 
           <Form onSubmit={submitHandler}>
             <Form.Group className="mb-3" controlId="name">
@@ -130,21 +115,28 @@ const RegisterScreen = () => {
               />
             </Form.Group>
 
-            <Button variant="dark" type="submit" className="w-100">
-              Registruj se
+            <Button type="submit" variant="dark" className="w-100" disabled={loading}>
+              {loading ? (
+                <>
+                  <Spinner animation="border" size="sm" className="me-2" />
+                  Registracija...
+                </>
+              ) : (
+                'Registruj se'
+              )}
             </Button>
           </Form>
 
-          <p className="text-muted text-center mt-4 mb-0">
-            Već imaš nalog?{' '}
-            <Link to="/login" className="fw-semibold text-dark">
-              Prijavi se
+          <p className="mt-4 mb-0">
+            Već imate nalog?{' '}
+            <Link to={redirect ? `/prijava?redirect=${redirect}` : '/prijava'}>
+              Prijavite se
             </Link>
           </p>
         </Card.Body>
       </Card>
     </Container>
   );
-};
+}
 
 export default RegisterScreen;

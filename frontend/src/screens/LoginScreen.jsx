@@ -1,63 +1,55 @@
 import { useState } from 'react';
-import { Alert, Button, Card, Container, Form } from 'react-bootstrap';
-import { Link } from 'react-router-dom';
+import { Alert, Button, Card, Container, Form, Spinner } from 'react-bootstrap';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
-const LoginScreen = () => {
+function LoginScreen() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const { login } = useAuth();
+
+  const redirect = new URLSearchParams(location.search).get('redirect') || '/';
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const [errorMessage, setErrorMessage] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const submitHandler = (e) => {
+  const submitHandler = async (e) => {
     e.preventDefault();
 
-    setErrorMessage('');
-    setSuccessMessage('');
+    setError('');
 
-    if (!email.trim()) {
-      setErrorMessage('Email adresa je obavezna.');
+    if (!email || !password) {
+      setError('Email i lozinka su obavezni.');
       return;
     }
 
-    if (!password.trim()) {
-      setErrorMessage('Lozinka je obavezna.');
-      return;
+    try {
+      setLoading(true);
+
+      await login(email, password);
+
+      navigate(redirect);
+    } catch (err) {
+      setError(
+        err.response?.data?.message ||
+          'Došlo je do greške prilikom prijave.'
+      );
+    } finally {
+      setLoading(false);
     }
-
-    if (password.length < 6) {
-      setErrorMessage('Lozinka mora imati najmanje 6 karaktera.');
-      return;
-    }
-
-    setSuccessMessage('Forma je ispravno popunjena. Login će biti povezan sa backendom kasnije.');
-
-    console.log('Login podaci:', {
-      email,
-      password,
-    });
   };
 
   return (
-    <Container className="py-5 auth-container">
-      <Card className="shadow-sm border-0">
-        <Card.Body className="p-4">
-          <h1 className="h3 fw-bold mb-2">Prijava</h1>
-          <p className="text-muted mb-4">
-            Prijavite se kako biste mogli da zakažete termin i pratite svoja zakazivanja.
-          </p>
+    <Container className="py-5">
+      <Card className="mx-auto shadow-sm" style={{ maxWidth: '500px' }}>
+        <Card.Body>
+          <h1 className="mb-4">Prijava</h1>
 
-          {errorMessage && (
-            <Alert variant="danger">
-              {errorMessage}
-            </Alert>
-          )}
-
-          {successMessage && (
-            <Alert variant="success">
-              {successMessage}
-            </Alert>
-          )}
+          {error && <Alert variant="danger">{error}</Alert>}
 
           <Form onSubmit={submitHandler}>
             <Form.Group className="mb-3" controlId="email">
@@ -80,21 +72,28 @@ const LoginScreen = () => {
               />
             </Form.Group>
 
-            <Button variant="dark" type="submit" className="w-100">
-              Prijavi se
+            <Button type="submit" variant="dark" className="w-100" disabled={loading}>
+              {loading ? (
+                <>
+                  <Spinner animation="border" size="sm" className="me-2" />
+                  Prijava...
+                </>
+              ) : (
+                'Prijavi se'
+              )}
             </Button>
           </Form>
 
-          <p className="text-muted text-center mt-4 mb-0">
-            Nemaš nalog?{' '}
-            <Link to="/registracija" className="fw-semibold text-dark">
-              Registruj se
+          <p className="mt-4 mb-0">
+            Nemate nalog?{' '}
+            <Link to={redirect ? `/registracija?redirect=${redirect}` : '/registracija'}>
+              Registrujte se
             </Link>
           </p>
         </Card.Body>
       </Card>
     </Container>
   );
-};
+}
 
 export default LoginScreen;
