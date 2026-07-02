@@ -1,3 +1,5 @@
+import connectDB from './config/db.js';
+
 import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
@@ -11,6 +13,7 @@ import reviewRoutes from './routes/reviewRoutes.js';
 import { errorHandler, notFound } from './middleware/errorMiddleware.js';
 
 dotenv.config();
+connectDB();
 
 const app = express();
 
