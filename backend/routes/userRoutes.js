@@ -7,6 +7,7 @@ import {
   registerUser,
   updateUserProfile,
 } from '../controllers/userController.js';
+import { admin, protect } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -14,13 +15,13 @@ router.post('/register', registerUser);
 router.post('/login', loginUser);
 
 router.route('/profile')
-  .get(getUserProfile)
-  .put(updateUserProfile);
+  .get(protect, getUserProfile)
+  .put(protect, updateUserProfile);
 
 router.route('/')
-  .get(getUsers);
+  .get(protect, admin, getUsers);
 
 router.route('/:id')
-  .delete(deleteUser);
+  .delete(protect, admin, deleteUser);
 
 export default router;
