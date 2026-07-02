@@ -1,24 +1,22 @@
 import { Card } from 'react-bootstrap';
-import { FaStar } from 'react-icons/fa';
 
-const ReviewCard = ({ review }) => {
+function ReviewCard({ review }) {
+  const userName = review.user?.name || 'Korisnik';
+
   return (
-    <Card className="h-100 border-0 shadow-sm">
+    <Card className="h-100 shadow-sm">
       <Card.Body>
-        <div className="mb-2">
-          {[...Array(review.rating)].map((_, index) => (
-            <FaStar key={index} className="text-warning me-1" />
-          ))}
-        </div>
+        <Card.Title>{userName}</Card.Title>
 
-        <Card.Text className="text-muted">
-          "{review.comment}"
-        </Card.Text>
+        <Card.Subtitle className="mb-2 text-warning">
+          {'★'.repeat(review.rating)}
+          {'☆'.repeat(5 - review.rating)}
+        </Card.Subtitle>
 
-        <p className="fw-bold mb-0">{review.user}</p>
+        <Card.Text>{review.comment}</Card.Text>
       </Card.Body>
     </Card>
   );
-};
+}
 
 export default ReviewCard;
