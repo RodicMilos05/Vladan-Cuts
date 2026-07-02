@@ -4,14 +4,15 @@ import {
   deleteReview,
   getReviews,
 } from '../controllers/reviewController.js';
+import { admin, protect } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
 router.route('/')
   .get(getReviews)
-  .post(createReview);
+  .post(protect, createReview);
 
 router.route('/:id')
-  .delete(deleteReview);
+  .delete(protect, admin, deleteReview);
 
 export default router;

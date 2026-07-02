@@ -6,16 +6,17 @@ import {
   getGalleryItems,
   updateGalleryItem,
 } from '../controllers/galleryController.js';
+import { admin, protect } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
 router.route('/')
   .get(getGalleryItems)
-  .post(createGalleryItem);
+  .post(protect, admin, createGalleryItem);
 
 router.route('/:id')
   .get(getGalleryItemById)
-  .put(updateGalleryItem)
-  .delete(deleteGalleryItem);
+  .put(protect, admin, updateGalleryItem)
+  .delete(protect, admin, deleteGalleryItem);
 
 export default router;
