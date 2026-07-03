@@ -1,76 +1,157 @@
-import { Card, Col, Container, Row } from 'react-bootstrap';
-import { Link } from 'react-router-dom';
-import { FaCalendarAlt, FaCut, FaImages, FaStar, FaUsers } from 'react-icons/fa';
+import { useEffect, useState } from 'react';
+import {
+  Alert,
+  Button,
+  Card,
+  Col,
+  Container,
+  Row,
+  Spinner,
+} from 'react-bootstrap';
+import { LinkContainer } from 'react-router-bootstrap';
+import api from '../../utils/api';
+import { useAuth } from '../../context/AuthContext';
 
-const adminCards = [
-  {
-    title: 'Korisnici',
-    description: 'Pregled registrovanih korisnika',
-    icon: <FaUsers />,
-    path: '/admin/korisnici',
-  },
-  {
-    title: 'Usluge',
-    description: 'Dodavanje, izmena i brisanje usluga',
-    icon: <FaCut />,
-    path: '/admin/usluge',
-  },
-  {
-    title: 'Termini',
-    description: 'Pregled i upravljanje zakazanim terminima',
-    icon: <FaCalendarAlt />,
-    path: '/admin/termini',
-  },
-  {
-    title: 'Galerija',
-    description: 'Upravljanje radovima u galeriji',
-    icon: <FaImages />,
-    path: '/admin/galerija',
-  },
-  {
-    title: 'Komentari',
-    description: 'Pregled i brisanje komentara korisnika',
-    icon: <FaStar />,
-    path: '/admin/komentari',
-  },
-];
+function AdminDashboardScreen() {
+  const { userInfo } = useAuth();
 
-const AdminDashboardScreen = () => {
+  const [stats, setStats] = useState({
+    users: 0,
+    services: 0,
+    appointments: 0,
+    gallery: 0,
+    reviews: 0,
+    pendingAppointments: 0,
+  });
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        const config = {
+          headers: {
+            Authorization: `Bearer ${userInfo.token}`,
+          },
+        };
+
+        const [
+          usersResponse,
+          servicesResponse,
+          appointmentsResponse,
+          galleryResponse,
+          reviewsResponse,
+        ] = await Promise.all([
+          api.get('/api/users', config),
+          api.get('/api/services'),
+          api.get('/api/appointments', config),
+          api.get('/api/gallery'),
+          api.get('/api/reviews'),
+        ]);
+
+        const pendingAppointments = appointmentsResponse.data.filter(
+          (appointment) => appointment.status === 'pending'
+        ).length;
+
+        setStats({
+          users: usersResponse.data.length,
+          services: servicesResponse.data.length,
+          appointments: appointmentsResponse.data.length,
+          gallery: galleryResponse.data.length,
+          reviews: reviewsResponse.data.length,
+          pendingAppointments,
+        });
+      } catch (err) {
+        setError(
+          err.response?.data?.message ||
+            'Došlo je do greške prilikom učitavanja admin panela.'
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, [userInfo.token]);
+
+  const cards = [
+    {
+      title: 'Korisnici',
+      value: stats.users,
+      text: 'Pregled registrovanih korisnika.',
+      link: '/admin/korisnici',
+      button: 'Otvori korisnike',
+    },
+    {
+      title: 'Usluge',
+      value: stats.services,
+      text: 'Pregled i upravljanje uslugama.',
+      link: '/admin/usluge',
+      button: 'Otvori usluge',
+    },
+    {
+      title: 'Termini',
+      value: stats.appointments,
+      text: `${stats.pendingAppointments} termina je na čekanju.`,
+      link: '/admin/termini',
+      button: 'Otvori termine',
+    },
+    {
+      title: 'Galerija',
+      value: stats.gallery,
+      text: 'Pregled radova u galeriji.',
+      link: '/admin/galerija',
+      button: 'Otvori galeriju',
+    },
+    {
+      title: 'Komentari',
+      value: stats.reviews,
+      text: 'Pregled komentara korisnika.',
+      link: '/admin/komentari',
+      button: 'Otvori komentare',
+    },
+  ];
+
   return (
     <Container className="py-5">
-      <p className="text-uppercase text-muted fw-semibold mb-2">
-        Administracija
-      </p>
-
-      <h1 className="fw-bold mb-2">Admin panel</h1>
+      <h1 className="mb-3">Admin panel</h1>
 
       <p className="text-muted mb-4">
-        Centralno mesto za upravljanje korisnicima, uslugama, terminima, galerijom i komentarima.
+        Dobrodošli u administratorski deo aplikacije Vladan Cuts.
       </p>
 
-      <Row className="g-4">
-        {adminCards.map((card) => (
-          <Col md={6} lg={4} key={card.title}>
-            <Link to={card.path} className="text-decoration-none text-dark">
-              <Card className="h-100 border-0 shadow-sm admin-card">
+      {loading && (
+        <div className="text-center py-5">
+          <Spinner animation="border" />
+        </div>
+      )}
+
+      {error && <Alert variant="danger">{error}</Alert>}
+
+      {!loading && !error && (
+        <Row className="g-4">
+          {cards.map((card) => (
+            <Col key={card.title} md={6} lg={4}>
+              <Card className="h-100 shadow-sm">
                 <Card.Body>
-                  <div className="admin-card-icon mb-3">
-                    {card.icon}
-                  </div>
+                  <Card.Title>{card.title}</Card.Title>
 
-                  <h5 className="fw-bold">{card.title}</h5>
+                  <h2 className="my-3">{card.value}</h2>
 
-                  <p className="text-muted mb-0">
-                    {card.description}
-                  </p>
+                  <Card.Text className="text-muted">{card.text}</Card.Text>
+
+                  <LinkContainer to={card.link}>
+                    <Button variant="dark">{card.button}</Button>
+                  </LinkContainer>
                 </Card.Body>
               </Card>
-            </Link>
-          </Col>
-        ))}
-      </Row>
+            </Col>
+          ))}
+        </Row>
+      )}
     </Container>
   );
-};
+}
 
 export default AdminDashboardScreen;

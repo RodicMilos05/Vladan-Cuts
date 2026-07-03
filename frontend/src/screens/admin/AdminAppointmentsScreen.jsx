@@ -1,97 +1,170 @@
 import { useEffect, useState } from 'react';
-import { Alert, Badge, Button, Container, Table } from 'react-bootstrap';
-import { getStoredAppointments } from '../../utils/appointmentStorage';
+import {
+  Alert,
+  Badge,
+  Card,
+  Container,
+  Form,
+  Spinner,
+  Table,
+} from 'react-bootstrap';
+import api from '../../utils/api';
+import { useAuth } from '../../context/AuthContext';
 
-const getStatusText = (status) => {
-  if (status === 'pending') return 'Na čekanju';
-  if (status === 'confirmed') return 'Potvrđen';
-  if (status === 'cancelled') return 'Otkazan';
-  if (status === 'completed') return 'Završen';
+function AdminAppointmentsScreen() {
+  const { userInfo } = useAuth();
 
-  return status;
-};
-
-const getStatusVariant = (status) => {
-  if (status === 'pending') return 'warning';
-  if (status === 'confirmed') return 'success';
-  if (status === 'cancelled') return 'danger';
-  if (status === 'completed') return 'secondary';
-
-  return 'dark';
-};
-
-const AdminAppointmentsScreen = () => {
   const [appointments, setAppointments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [statusLoadingId, setStatusLoadingId] = useState('');
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  const statusLabels = {
+    pending: 'Na čekanju',
+    confirmed: 'Potvrđen',
+    cancelled: 'Otkazan',
+    completed: 'Završen',
+  };
+
+  const statusVariants = {
+    pending: 'warning',
+    confirmed: 'success',
+    cancelled: 'secondary',
+    completed: 'dark',
+  };
+
+  const fetchAppointments = async () => {
+    try {
+      setLoading(true);
+
+      const { data } = await api.get('/api/appointments', {
+        headers: {
+          Authorization: `Bearer ${userInfo.token}`,
+        },
+      });
+
+      setAppointments(data);
+    } catch (err) {
+      setError(
+        err.response?.data?.message ||
+          'Došlo je do greške prilikom učitavanja termina.'
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    setAppointments(getStoredAppointments());
-  }, []);
+    fetchAppointments();
+  }, [userInfo.token]);
+
+  const updateStatusHandler = async (appointmentId, status) => {
+    try {
+      setError('');
+      setSuccess('');
+      setStatusLoadingId(appointmentId);
+
+      await api.put(
+        `/api/appointments/${appointmentId}/status`,
+        { status },
+        {
+          headers: {
+            Authorization: `Bearer ${userInfo.token}`,
+          },
+        }
+      );
+
+      setSuccess('Status termina je uspešno promenjen.');
+
+      await fetchAppointments();
+    } catch (err) {
+      setError(
+        err.response?.data?.message ||
+          'Došlo je do greške prilikom izmene statusa termina.'
+      );
+    } finally {
+      setStatusLoadingId('');
+    }
+  };
 
   return (
     <Container className="py-5">
-      <h1 className="fw-bold mb-2">Upravljanje terminima</h1>
+      <h1 className="mb-3">Admin — termini</h1>
 
       <p className="text-muted mb-4">
-        Administrator ovde vidi sve zakazane termine. Trenutno se prikazuju termini sačuvani u localStorage-u.
+        Pregled svih termina i promena njihovog statusa.
       </p>
 
-      {appointments.length === 0 ? (
-        <Alert variant="info">
-          Još nema zakazanih termina.
-        </Alert>
+      {error && <Alert variant="danger">{error}</Alert>}
+      {success && <Alert variant="success">{success}</Alert>}
+
+      {loading ? (
+        <div className="text-center py-5">
+          <Spinner animation="border" />
+        </div>
+      ) : appointments.length === 0 ? (
+        <Alert variant="info">Trenutno nema termina.</Alert>
       ) : (
-        <Table striped bordered hover responsive className="shadow-sm bg-white">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Usluga</th>
-              <th>Datum</th>
-              <th>Vreme</th>
-              <th>Cena</th>
-              <th>Status</th>
-              <th>Akcije</th>
-            </tr>
-          </thead>
+        <Card className="shadow-sm">
+          <Card.Body>
+            <Table responsive hover className="align-middle">
+              <thead>
+                <tr>
+                  <th>Korisnik</th>
+                  <th>Telefon</th>
+                  <th>Usluga</th>
+                  <th>Datum</th>
+                  <th>Vreme</th>
+                  <th>Status</th>
+                  <th>Promena statusa</th>
+                </tr>
+              </thead>
 
-          <tbody>
-            {appointments.map((appointment) => (
-              <tr key={appointment.id}>
-                <td>{appointment.id}</td>
-                <td>{appointment.serviceName}</td>
-                <td>{appointment.date}</td>
-                <td>{appointment.time}</td>
-                <td>{appointment.servicePrice} RSD</td>
-                <td>
-                  <Badge bg={getStatusVariant(appointment.status)}>
-                    {getStatusText(appointment.status)}
-                  </Badge>
-                </td>
-                <td>
-                  <div className="d-flex gap-2">
-                    <Button variant="outline-success" size="sm" disabled>
-                      Potvrdi
-                    </Button>
-
-                    <Button variant="outline-secondary" size="sm" disabled>
-                      Završi
-                    </Button>
-
-                    <Button variant="outline-danger" size="sm" disabled>
-                      Otkaži
-                    </Button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </Table>
+              <tbody>
+                {appointments.map((appointment) => (
+                  <tr key={appointment._id}>
+                    <td>
+                      {appointment.user?.name || 'Korisnik nije pronađen'}
+                      <br />
+                      <small className="text-muted">
+                        {appointment.user?.email || '-'}
+                      </small>
+                    </td>
+                    <td>{appointment.user?.phone || '-'}</td>
+                    <td>{appointment.service?.name || 'Usluga nije pronađena'}</td>
+                    <td>{appointment.date}</td>
+                    <td>{appointment.time}</td>
+                    <td>
+                      <Badge bg={statusVariants[appointment.status] || 'light'}>
+                        {statusLabels[appointment.status] ||
+                          appointment.status}
+                      </Badge>
+                    </td>
+                    <td style={{ minWidth: '160px' }}>
+                      <Form.Select
+                        size="sm"
+                        value={appointment.status}
+                        disabled={statusLoadingId === appointment._id}
+                        onChange={(e) =>
+                          updateStatusHandler(appointment._id, e.target.value)
+                        }
+                      >
+                        <option value="pending">Na čekanju</option>
+                        <option value="confirmed">Potvrđen</option>
+                        <option value="cancelled">Otkazan</option>
+                        <option value="completed">Završen</option>
+                      </Form.Select>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          </Card.Body>
+        </Card>
       )}
-
-      <p className="text-muted small">
-        Promena statusa termina biće omogućena nakon povezivanja sa backendom.
-      </p>
     </Container>
   );
-};
+}
 
 export default AdminAppointmentsScreen;
