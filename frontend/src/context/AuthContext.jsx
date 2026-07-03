@@ -43,6 +43,19 @@ export function AuthProvider({ children }) {
     return data;
   };
 
+  const updateProfile = async (profileData) => {
+    const { data } = await api.put('/api/users/profile', profileData, {
+      headers: {
+        Authorization: `Bearer ${userInfo.token}`,
+      },
+    });
+
+    localStorage.setItem('vladanCutsUserInfo', JSON.stringify(data));
+    setUserInfo(data);
+
+    return data;
+  };
+
   const logout = () => {
     localStorage.removeItem('vladanCutsUserInfo');
     setUserInfo(null);
@@ -53,6 +66,7 @@ export function AuthProvider({ children }) {
     authLoading,
     login,
     register,
+    updateProfile,
     logout,
   };
 
