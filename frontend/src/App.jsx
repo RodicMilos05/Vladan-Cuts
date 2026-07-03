@@ -1,6 +1,9 @@
 import { Route, Routes } from 'react-router-dom';
+
 import Header from './components/Header';
 import Footer from './components/Footer';
+import ProtectedRoute from './components/ProtectedRoute';
+import AdminRoute from './components/AdminRoute';
 
 import HomeScreen from './screens/HomeScreen';
 import ServicesScreen from './screens/ServicesScreen';
@@ -20,39 +23,42 @@ import AdminAppointmentsScreen from './screens/admin/AdminAppointmentsScreen';
 import AdminGalleryScreen from './screens/admin/AdminGalleryScreen';
 import AdminReviewsScreen from './screens/admin/AdminReviewsScreen';
 
-const App = () => {
+function App() {
   return (
-    <div className="app-wrapper">
+    <>
       <Header />
 
-      <main className="main-content">
+      <main>
         <Routes>
           <Route path="/" element={<HomeScreen />} />
           <Route path="/usluge" element={<ServicesScreen />} />
           <Route path="/galerija" element={<GalleryScreen />} />
           <Route path="/komentari" element={<ReviewsScreen />} />
-
           <Route path="/prijava" element={<LoginScreen />} />
           <Route path="/registracija" element={<RegisterScreen />} />
 
-          <Route path="/zakazivanje" element={<BookingScreen />} />
-          <Route path="/moji-termini" element={<MyAppointmentsScreen />} />
-          <Route path="/profil" element={<ProfileScreen />} />
+          <Route element={<ProtectedRoute />}>
+            <Route path="/zakazivanje" element={<BookingScreen />} />
+            <Route path="/moji-termini" element={<MyAppointmentsScreen />} />
+            <Route path="/profil" element={<ProfileScreen />} />
+          </Route>
 
-          <Route path="/admin" element={<AdminDashboardScreen />} />
-          <Route path="/admin/korisnici" element={<AdminUsersScreen />} />
-          <Route path="/admin/usluge" element={<AdminServicesScreen />} />
-          <Route path="/admin/termini" element={<AdminAppointmentsScreen />} />
-          <Route path="/admin/galerija" element={<AdminGalleryScreen />} />
-          <Route path="/admin/komentari" element={<AdminReviewsScreen />} />
+          <Route element={<AdminRoute />}>
+            <Route path="/admin" element={<AdminDashboardScreen />} />
+            <Route path="/admin/korisnici" element={<AdminUsersScreen />} />
+            <Route path="/admin/usluge" element={<AdminServicesScreen />} />
+            <Route path="/admin/termini" element={<AdminAppointmentsScreen />} />
+            <Route path="/admin/galerija" element={<AdminGalleryScreen />} />
+            <Route path="/admin/komentari" element={<AdminReviewsScreen />} />
+          </Route>
 
           <Route path="*" element={<NotFoundScreen />} />
         </Routes>
       </main>
 
       <Footer />
-    </div>
+    </>
   );
-};
+}
 
 export default App;
