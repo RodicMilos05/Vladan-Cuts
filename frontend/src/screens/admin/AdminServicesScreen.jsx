@@ -5,6 +5,8 @@ import {
   Button,
   Card,
   Container,
+  Form,
+  Modal,
   Spinner,
   Table,
 } from 'react-bootstrap';
@@ -17,8 +19,25 @@ function AdminServicesScreen() {
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionLoadingId, setActionLoadingId] = useState('');
+  const [formLoading, setFormLoading] = useState(false);
+
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  const [showModal, setShowModal] = useState(false);
+  const [editingService, setEditingService] = useState(null);
+
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [price, setPrice] = useState('');
+  const [duration, setDuration] = useState('');
+  const [isActive, setIsActive] = useState(true);
+
+  const config = {
+    headers: {
+      Authorization: `Bearer ${userInfo.token}`,
+    },
+  };
 
   const fetchServices = async () => {
     try {
@@ -41,10 +60,89 @@ function AdminServicesScreen() {
     fetchServices();
   }, []);
 
-  const config = {
-    headers: {
-      Authorization: `Bearer ${userInfo.token}`,
-    },
+  const resetForm = () => {
+    setEditingService(null);
+    setName('');
+    setDescription('');
+    setPrice('');
+    setDuration('');
+    setIsActive(true);
+  };
+
+  const openCreateModal = () => {
+    resetForm();
+    setError('');
+    setSuccess('');
+    setShowModal(true);
+  };
+
+  const openEditModal = (service) => {
+    setEditingService(service);
+    setName(service.name);
+    setDescription(service.description);
+    setPrice(service.price);
+    setDuration(service.duration);
+    setIsActive(service.isActive);
+    setError('');
+    setSuccess('');
+    setShowModal(true);
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    resetForm();
+  };
+
+  const submitHandler = async (e) => {
+    e.preventDefault();
+
+    setError('');
+    setSuccess('');
+
+    if (!name || !description || !price || !duration) {
+      setError('Naziv, opis, cena i trajanje su obavezni.');
+      return;
+    }
+
+    if (Number(price) < 0) {
+      setError('Cena ne može biti negativna.');
+      return;
+    }
+
+    if (Number(duration) < 1) {
+      setError('Trajanje mora biti najmanje 1 minut.');
+      return;
+    }
+
+    const serviceData = {
+      name,
+      description,
+      price: Number(price),
+      duration: Number(duration),
+      isActive,
+    };
+
+    try {
+      setFormLoading(true);
+
+      if (editingService) {
+        await api.put(`/api/services/${editingService._id}`, serviceData, config);
+        setSuccess('Usluga je uspešno izmenjena.');
+      } else {
+        await api.post('/api/services', serviceData, config);
+        setSuccess('Usluga je uspešno dodata.');
+      }
+
+      closeModal();
+      await fetchServices();
+    } catch (err) {
+      setError(
+        err.response?.data?.message ||
+          'Došlo je do greške prilikom čuvanja usluge.'
+      );
+    } finally {
+      setFormLoading(false);
+    }
   };
 
   const toggleActiveHandler = async (service) => {
@@ -105,12 +203,19 @@ function AdminServicesScreen() {
 
   return (
     <Container className="py-5">
-      <h1 className="mb-3">Admin — usluge</h1>
+      <div className="d-flex justify-content-between align-items-center mb-3">
+        <div>
+          <h1 className="mb-1">Admin — usluge</h1>
 
-      <p className="text-muted mb-4">
-        Pregled usluga. U ovom koraku omogućeno je aktiviranje, deaktiviranje i
-        brisanje usluga.
-      </p>
+          <p className="text-muted mb-0">
+            Dodavanje, izmena, aktiviranje, deaktiviranje i brisanje usluga.
+          </p>
+        </div>
+
+        <Button variant="dark" onClick={openCreateModal}>
+          Dodaj uslugu
+        </Button>
+      </div>
 
       {error && <Alert variant="danger">{error}</Alert>}
       {success && <Alert variant="success">{success}</Alert>}
@@ -151,7 +256,15 @@ function AdminServicesScreen() {
                       )}
                     </td>
                     <td>
-                      <div className="d-flex gap-2">
+                      <div className="d-flex flex-wrap gap-2">
+                        <Button
+                          variant="outline-primary"
+                          size="sm"
+                          onClick={() => openEditModal(service)}
+                        >
+                          Izmeni
+                        </Button>
+
                         <Button
                           variant="outline-dark"
                           size="sm"
@@ -178,6 +291,79 @@ function AdminServicesScreen() {
           </Card.Body>
         </Card>
       )}
+
+      <Modal show={showModal} onHide={closeModal} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>
+            {editingService ? 'Izmena usluge' : 'Dodavanje usluge'}
+          </Modal.Title>
+        </Modal.Header>
+
+        <Form onSubmit={submitHandler}>
+          <Modal.Body>
+            <Form.Group className="mb-3" controlId="name">
+              <Form.Label>Naziv usluge</Form.Label>
+              <Form.Control
+                type="text"
+                placeholder="Na primer: Fade šišanje"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-3" controlId="description">
+              <Form.Label>Opis usluge</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={3}
+                placeholder="Unesite kratak opis usluge"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-3" controlId="price">
+              <Form.Label>Cena u RSD</Form.Label>
+              <Form.Control
+                type="number"
+                min="0"
+                placeholder="Na primer: 1000"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-3" controlId="duration">
+              <Form.Label>Trajanje u minutima</Form.Label>
+              <Form.Control
+                type="number"
+                min="1"
+                placeholder="Na primer: 40"
+                value={duration}
+                onChange={(e) => setDuration(e.target.value)}
+              />
+            </Form.Group>
+
+            <Form.Check
+              type="checkbox"
+              id="isActive"
+              label="Usluga je aktivna i vidljiva korisnicima"
+              checked={isActive}
+              onChange={(e) => setIsActive(e.target.checked)}
+            />
+          </Modal.Body>
+
+          <Modal.Footer>
+            <Button variant="secondary" onClick={closeModal}>
+              Odustani
+            </Button>
+
+            <Button type="submit" variant="dark" disabled={formLoading}>
+              {formLoading ? 'Čuvanje...' : 'Sačuvaj'}
+            </Button>
+          </Modal.Footer>
+        </Form>
+      </Modal>
     </Container>
   );
 }
