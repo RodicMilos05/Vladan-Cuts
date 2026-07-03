@@ -1,198 +1,212 @@
-import { useState } from 'react';
-import { Alert, Button, Card, Container, Form } from 'react-bootstrap';
+import { useEffect, useState } from 'react';
+import {
+  Alert,
+  Button,
+  Card,
+  Container,
+  Form,
+  Spinner,
+} from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
-import { services } from '../data/mockData';
-import { isAppointmentTaken, saveStoredAppointment } from '../utils/appointmentStorage';
+import api from '../utils/api';
+import { useAuth } from '../context/AuthContext';
 
-const availableTimes = [
-  '09:00',
-  '10:00',
-  '11:00',
-  '12:00',
-  '13:00',
-  '14:00',
-  '15:00',
-  '16:00',
-  '17:00',
-  '18:00',
-  '19:00',
-];
+function BookingScreen() {
+  const navigate = useNavigate();
+  const { userInfo } = useAuth();
 
-const getTodayDate = () => {
-  return new Date().toISOString().split('T')[0];
-};
-
-const BookingScreen = () => {
+  const [services, setServices] = useState([]);
   const [serviceId, setServiceId] = useState('');
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   const [note, setNote] = useState('');
 
-  const [errorMessage, setErrorMessage] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
+  const [loadingServices, setLoadingServices] = useState(true);
+  const [loadingSubmit, setLoadingSubmit] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
-  const navigate = useNavigate();
+  const availableTimes = [
+    '09:00',
+    '10:00',
+    '11:00',
+    '12:00',
+    '13:00',
+    '14:00',
+    '15:00',
+    '16:00',
+    '17:00',
+  ];
 
-  const selectedService = services.find((service) => {
-    return service.id === Number(serviceId);
-  });
+  const getTodayInputValue = () => {
+    const today = new Date();
+    const timezoneOffset = today.getTimezoneOffset() * 60000;
+    return new Date(today.getTime() - timezoneOffset)
+      .toISOString()
+      .split('T')[0];
+  };
 
-  const submitHandler = (e) => {
-    e.preventDefault();
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        const { data } = await api.get('/api/services');
 
-    setErrorMessage('');
-    setSuccessMessage('');
+        const activeServices = data.filter((service) => service.isActive);
 
-    if (!serviceId) {
-      setErrorMessage('Morate izabrati uslugu.');
-      return;
-    }
+        setServices(activeServices);
 
-    if (!date) {
-      setErrorMessage('Morate izabrati datum.');
-      return;
-    }
-
-    if (!time) {
-      setErrorMessage('Morate izabrati vreme.');
-      return;
-    }
-
-    if (date < getTodayDate()) {
-      setErrorMessage('Ne možete zakazati termin u prošlosti.');
-      return;
-    }
-
-    if (isAppointmentTaken(date, time)) {
-      setErrorMessage('Izabrani termin je već zauzet. Izaberite drugo vreme.');
-      return;
-    }
-
-    const newAppointment = {
-      id: Date.now(),
-      serviceId: selectedService.id,
-      serviceName: selectedService.name,
-      servicePrice: selectedService.price,
-      serviceDuration: selectedService.duration,
-      date,
-      time,
-      note,
-      status: 'pending',
-      createdAt: new Date().toISOString(),
+        if (activeServices.length > 0) {
+          setServiceId(activeServices[0]._id);
+        }
+      } catch (err) {
+        setError(
+          err.response?.data?.message ||
+            'Došlo je do greške prilikom učitavanja usluga.'
+        );
+      } finally {
+        setLoadingServices(false);
+      }
     };
 
-    saveStoredAppointment(newAppointment);
+    fetchServices();
+  }, []);
 
-    setSuccessMessage('Termin je uspešno zakazan. Preusmeravanje na stranicu Moji termini...');
+  const submitHandler = async (e) => {
+    e.preventDefault();
 
-    setServiceId('');
-    setDate('');
-    setTime('');
-    setNote('');
+    setError('');
+    setSuccess('');
 
-    setTimeout(() => {
-      navigate('/moji-termini');
-    }, 900);
+    if (!serviceId || !date || !time) {
+      setError('Usluga, datum i vreme su obavezni.');
+      return;
+    }
+
+    try {
+      setLoadingSubmit(true);
+
+      await api.post(
+        '/api/appointments',
+        {
+          serviceId,
+          date,
+          time,
+          note,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${userInfo.token}`,
+          },
+        }
+      );
+
+      setSuccess('Termin je uspešno zakazan.');
+
+      setTimeout(() => {
+        navigate('/moji-termini');
+      }, 800);
+    } catch (err) {
+      setError(
+        err.response?.data?.message ||
+          'Došlo je do greške prilikom zakazivanja termina.'
+      );
+    } finally {
+      setLoadingSubmit(false);
+    }
   };
 
   return (
     <Container className="py-5">
-      <div className="mb-4">
-        <p className="text-uppercase text-muted fw-semibold mb-2">
-          Online rezervacija
-        </p>
-        <h1 className="fw-bold mb-2">Zakazivanje termina</h1>
-        <p className="text-muted mb-0">
-          Izaberite uslugu, datum i vreme termina. Nakon slanja, termin će biti dodat u listu vaših termina.
-        </p>
-      </div>
+      <Card className="mx-auto shadow-sm" style={{ maxWidth: '650px' }}>
+        <Card.Body>
+          <h1 className="mb-3">Zakazivanje termina</h1>
 
-      <Card className="shadow-sm border-0">
-        <Card.Body className="p-4">
-          {errorMessage && (
-            <Alert variant="danger">
-              {errorMessage}
-            </Alert>
-          )}
+          <p className="text-muted mb-4">
+            Izaberite uslugu, datum i vreme koje vam odgovara.
+          </p>
 
-          {successMessage && (
-            <Alert variant="success">
-              {successMessage}
-            </Alert>
-          )}
+          {error && <Alert variant="danger">{error}</Alert>}
+          {success && <Alert variant="success">{success}</Alert>}
 
-          <Form onSubmit={submitHandler}>
-            <Form.Group className="mb-3" controlId="service">
-              <Form.Label>Usluga</Form.Label>
-              <Form.Select
-                value={serviceId}
-                onChange={(e) => setServiceId(e.target.value)}
+          {loadingServices ? (
+            <div className="text-center py-5">
+              <Spinner animation="border" />
+            </div>
+          ) : (
+            <Form onSubmit={submitHandler}>
+              <Form.Group className="mb-3" controlId="service">
+                <Form.Label>Usluga</Form.Label>
+                <Form.Select
+                  value={serviceId}
+                  onChange={(e) => setServiceId(e.target.value)}
+                >
+                  {services.map((service) => (
+                    <option key={service._id} value={service._id}>
+                      {service.name} — {service.price} RSD / {service.duration}{' '}
+                      min
+                    </option>
+                  ))}
+                </Form.Select>
+              </Form.Group>
+
+              <Form.Group className="mb-3" controlId="date">
+                <Form.Label>Datum</Form.Label>
+                <Form.Control
+                  type="date"
+                  min={getTodayInputValue()}
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                />
+              </Form.Group>
+
+              <Form.Group className="mb-3" controlId="time">
+                <Form.Label>Vreme</Form.Label>
+                <Form.Select
+                  value={time}
+                  onChange={(e) => setTime(e.target.value)}
+                >
+                  <option value="">Izaberite vreme</option>
+
+                  {availableTimes.map((availableTime) => (
+                    <option key={availableTime} value={availableTime}>
+                      {availableTime}
+                    </option>
+                  ))}
+                </Form.Select>
+              </Form.Group>
+
+              <Form.Group className="mb-4" controlId="note">
+                <Form.Label>Napomena</Form.Label>
+                <Form.Control
+                  as="textarea"
+                  rows={3}
+                  placeholder="Unesite dodatnu napomenu ako je imate"
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                />
+              </Form.Group>
+
+              <Button
+                type="submit"
+                variant="dark"
+                className="w-100"
+                disabled={loadingSubmit}
               >
-                <option value="">Izaberite uslugu</option>
-
-                {services.map((service) => (
-                  <option value={service.id} key={service.id}>
-                    {service.name} - {service.price} RSD / {service.duration} min
-                  </option>
-                ))}
-              </Form.Select>
-            </Form.Group>
-
-            {selectedService && (
-              <Alert variant="secondary" className="booking-summary">
-                <strong>Izabrana usluga:</strong> {selectedService.name}
-                <br />
-                <strong>Cena:</strong> {selectedService.price} RSD
-                <br />
-                <strong>Trajanje:</strong> {selectedService.duration} min
-              </Alert>
-            )}
-
-            <Form.Group className="mb-3" controlId="date">
-              <Form.Label>Datum</Form.Label>
-              <Form.Control
-                type="date"
-                min={getTodayDate()}
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-              />
-            </Form.Group>
-
-            <Form.Group className="mb-3" controlId="time">
-              <Form.Label>Vreme</Form.Label>
-              <Form.Select
-                value={time}
-                onChange={(e) => setTime(e.target.value)}
-              >
-                <option value="">Izaberite vreme</option>
-
-                {availableTimes.map((availableTime) => (
-                  <option value={availableTime} key={availableTime}>
-                    {availableTime}
-                  </option>
-                ))}
-              </Form.Select>
-            </Form.Group>
-
-            <Form.Group className="mb-4" controlId="note">
-              <Form.Label>Napomena</Form.Label>
-              <Form.Control
-                as="textarea"
-                rows={3}
-                placeholder="Unesite napomenu ako je potrebno"
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-              />
-            </Form.Group>
-
-            <Button variant="dark" type="submit">
-              Zakaži termin
-            </Button>
-          </Form>
+                {loadingSubmit ? (
+                  <>
+                    <Spinner animation="border" size="sm" className="me-2" />
+                    Zakazivanje...
+                  </>
+                ) : (
+                  'Zakaži termin'
+                )}
+              </Button>
+            </Form>
+          )}
         </Card.Body>
       </Card>
     </Container>
   );
-};
+}
 
 export default BookingScreen;

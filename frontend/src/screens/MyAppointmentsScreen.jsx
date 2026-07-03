@@ -1,152 +1,176 @@
 import { useEffect, useState } from 'react';
-import { Alert, Badge, Button, Card, Col, Container, Row } from 'react-bootstrap';
-import { LinkContainer } from 'react-router-bootstrap';
-import { cancelStoredAppointment, getStoredAppointments } from '../utils/appointmentStorage';
+import {
+  Alert,
+  Badge,
+  Button,
+  Card,
+  Container,
+  Spinner,
+  Table,
+} from 'react-bootstrap';
+import api from '../utils/api';
+import { useAuth } from '../context/AuthContext';
 
-const getStatusText = (status) => {
-  if (status === 'pending') {
-    return 'Na čekanju';
-  }
+function MyAppointmentsScreen() {
+  const { userInfo } = useAuth();
 
-  if (status === 'confirmed') {
-    return 'Potvrđen';
-  }
-
-  if (status === 'cancelled') {
-    return 'Otkazan';
-  }
-
-  if (status === 'completed') {
-    return 'Završen';
-  }
-
-  return status;
-};
-
-const getStatusVariant = (status) => {
-  if (status === 'pending') {
-    return 'warning';
-  }
-
-  if (status === 'confirmed') {
-    return 'success';
-  }
-
-  if (status === 'cancelled') {
-    return 'danger';
-  }
-
-  if (status === 'completed') {
-    return 'secondary';
-  }
-
-  return 'dark';
-};
-
-const MyAppointmentsScreen = () => {
   const [appointments, setAppointments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [cancelLoadingId, setCancelLoadingId] = useState('');
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  const statusLabels = {
+    pending: 'Na čekanju',
+    confirmed: 'Potvrđen',
+    cancelled: 'Otkazan',
+    completed: 'Završen',
+  };
+
+  const statusVariants = {
+    pending: 'warning',
+    confirmed: 'success',
+    cancelled: 'secondary',
+    completed: 'dark',
+  };
+
+  const fetchAppointments = async () => {
+    try {
+      setLoading(true);
+
+      const { data } = await api.get('/api/appointments/my', {
+        headers: {
+          Authorization: `Bearer ${userInfo.token}`,
+        },
+      });
+
+      setAppointments(data);
+    } catch (err) {
+      setError(
+        err.response?.data?.message ||
+          'Došlo je do greške prilikom učitavanja termina.'
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const storedAppointments = getStoredAppointments();
-    setAppointments(storedAppointments);
+    fetchAppointments();
   }, []);
 
-  const cancelHandler = (appointmentId) => {
-    const confirmed = window.confirm('Da li ste sigurni da želite da otkažete termin?');
+  const cancelAppointmentHandler = async (appointmentId) => {
+    const confirmed = window.confirm(
+      'Da li ste sigurni da želite da otkažete ovaj termin?'
+    );
 
     if (!confirmed) {
       return;
     }
 
-    const updatedAppointments = cancelStoredAppointment(appointmentId);
-    setAppointments(updatedAppointments);
+    try {
+      setError('');
+      setSuccess('');
+      setCancelLoadingId(appointmentId);
+
+      await api.delete(`/api/appointments/${appointmentId}`, {
+        headers: {
+          Authorization: `Bearer ${userInfo.token}`,
+        },
+      });
+
+      setSuccess('Termin je uspešno otkazan.');
+
+      await fetchAppointments();
+    } catch (err) {
+      setError(
+        err.response?.data?.message ||
+          'Došlo je do greške prilikom otkazivanja termina.'
+      );
+    } finally {
+      setCancelLoadingId('');
+    }
   };
 
   return (
     <Container className="py-5">
-      <div className="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-4">
-        <div>
-          <p className="text-uppercase text-muted fw-semibold mb-2">
-            Korisnički deo
-          </p>
-          <h1 className="fw-bold mb-2">Moji termini</h1>
-          <p className="text-muted mb-0">
-            Pregled svih termina koje ste zakazali preko aplikacije.
-          </p>
+      <h1 className="mb-3">Moji termini</h1>
+
+      <p className="text-muted mb-4">
+        Ovde možete videti sve svoje zakazane termine i njihov trenutni status.
+      </p>
+
+      {error && <Alert variant="danger">{error}</Alert>}
+      {success && <Alert variant="success">{success}</Alert>}
+
+      {loading ? (
+        <div className="text-center py-5">
+          <Spinner animation="border" />
         </div>
-
-        <LinkContainer to="/zakazivanje">
-          <Button variant="dark">
-            Zakaži novi termin
-          </Button>
-        </LinkContainer>
-      </div>
-
-      {appointments.length === 0 ? (
-        <Alert variant="info">
-          Trenutno nemate zakazanih termina. Kliknite na dugme "Zakaži novi termin" da napravite prvi termin.
-        </Alert>
+      ) : appointments.length === 0 ? (
+        <Alert variant="info">Trenutno nemate zakazanih termina.</Alert>
       ) : (
-        <Row className="g-4">
-          {appointments.map((appointment) => (
-            <Col md={6} lg={4} key={appointment.id}>
-              <Card className="h-100 border-0 shadow-sm appointment-card">
-                <Card.Body className="d-flex flex-column">
-                  <div className="d-flex justify-content-between align-items-start mb-3">
-                    <h5 className="fw-bold mb-0">
-                      {appointment.serviceName}
-                    </h5>
+        <Card className="shadow-sm">
+          <Card.Body>
+            <Table responsive hover className="align-middle">
+              <thead>
+                <tr>
+                  <th>Usluga</th>
+                  <th>Datum</th>
+                  <th>Vreme</th>
+                  <th>Cena</th>
+                  <th>Status</th>
+                  <th>Napomena</th>
+                  <th>Akcija</th>
+                </tr>
+              </thead>
 
-                    <Badge bg={getStatusVariant(appointment.status)}>
-                      {getStatusText(appointment.status)}
-                    </Badge>
-                  </div>
-
-                  <p className="mb-2">
-                    <strong>Datum:</strong> {appointment.date}
-                  </p>
-
-                  <p className="mb-2">
-                    <strong>Vreme:</strong> {appointment.time}
-                  </p>
-
-                  <p className="mb-2">
-                    <strong>Trajanje:</strong> {appointment.serviceDuration} min
-                  </p>
-
-                  <p className="mb-2">
-                    <strong>Cena:</strong> {appointment.servicePrice} RSD
-                  </p>
-
-                  {appointment.note && (
-                    <p className="text-muted">
-                      <strong>Napomena:</strong> {appointment.note}
-                    </p>
-                  )}
-
-                  <div className="mt-auto">
-                    {appointment.status !== 'cancelled' ? (
-                      <Button
-                        variant="outline-danger"
-                        size="sm"
-                        onClick={() => cancelHandler(appointment.id)}
-                      >
-                        Otkaži termin
-                      </Button>
-                    ) : (
-                      <p className="text-muted small mb-0">
-                        Ovaj termin je otkazan.
-                      </p>
-                    )}
-                  </div>
-                </Card.Body>
-              </Card>
-            </Col>
-          ))}
-        </Row>
+              <tbody>
+                {appointments.map((appointment) => (
+                  <tr key={appointment._id}>
+                    <td>{appointment.service?.name || 'Usluga'}</td>
+                    <td>{appointment.date}</td>
+                    <td>{appointment.time}</td>
+                    <td>
+                      {appointment.service?.price
+                        ? `${appointment.service.price} RSD`
+                        : '-'}
+                    </td>
+                    <td>
+                      <Badge bg={statusVariants[appointment.status] || 'light'}>
+                        {statusLabels[appointment.status] ||
+                          appointment.status}
+                      </Badge>
+                    </td>
+                    <td>{appointment.note || '-'}</td>
+                    <td>
+                      {appointment.status !== 'cancelled' &&
+                      appointment.status !== 'completed' ? (
+                        <Button
+                          variant="outline-danger"
+                          size="sm"
+                          disabled={cancelLoadingId === appointment._id}
+                          onClick={() =>
+                            cancelAppointmentHandler(appointment._id)
+                          }
+                        >
+                          {cancelLoadingId === appointment._id
+                            ? 'Otkazivanje...'
+                            : 'Otkaži'}
+                        </Button>
+                      ) : (
+                        '-'
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          </Card.Body>
+        </Card>
       )}
     </Container>
   );
-};
+}
 
 export default MyAppointmentsScreen;
