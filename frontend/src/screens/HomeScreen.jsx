@@ -58,7 +58,7 @@ function HomeScreen() {
 
   return (
     <>
-      <section className="bg-dark text-light py-5">
+      <section className="hero-section text-light py-5">
         <Container>
           <Row className="align-items-center">
             <Col lg={7}>
